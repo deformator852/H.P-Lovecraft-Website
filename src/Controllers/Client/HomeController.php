@@ -2,10 +2,14 @@
 
 declare(strict_types=1);
 
-class HomeController
+use Library\Controller\AbstractController;
+use Library\Response\Response;
+use Library\View\View;
+
+class HomeController extends AbstractController
 {
-	public function index(): string
+	public function index(): Response
 	{
-		return 'asdad';
+		return View::render('/pages/home.php');
 	}
 }

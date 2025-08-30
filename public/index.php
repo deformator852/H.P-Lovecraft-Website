@@ -1,5 +1,7 @@
 <?php
 
+use Library\Response\AbstractResponse;
+
 spl_autoload_register(function ($class) {
 	$parts = explode('\\', $class);
 	$parts[0] = lcfirst($parts[0]);
@@ -9,22 +11,49 @@ spl_autoload_register(function ($class) {
 	}
 });
 
-
 $webRoutes = require __DIR__ . '/../routes/web.php';
-$requestUri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+$requestUrl = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 $requestMethod = $_SERVER['REQUEST_METHOD'];
-$requestUrlArguments = parse_url($_SERVER['REQUEST_URI'], PHP_URL_QUERY);
+$requestQueryParams = [];
+parse_str(parse_url($_SERVER['REQUEST_URI'], PHP_URL_QUERY), $requestQueryParams);
 
 foreach ($webRoutes as $route) {
+	$instance = null;
+	$router = new Router($requestUrl, $webRoutes);
+	$routeUrl = $route->url;
+	$routeQueryArguments = [];
+	preg_match_all('/\{(\w+):(\w+)\}/', $routeUrl, $matches, PREG_SET_ORDER);
+	foreach ($matches as $match) {
+		$routeQueryArguments[$match[1]] = $match[2];
+	}
+
 	if (mb_strtolower($requestMethod) !== $route->method) {
 		continue;
 	}
 
-	if ($requestUri !== $route->url) {
-		continue;
+	if (empty($requestUrlArguments) && empty($routeQueryArguments)) {
+		if (!empty($instance)) {
+			$instance = [$route->controller, $route->handler];
+		}
+	}
+	if (!empty($requestQueryParams) && !empty($routeQueryArguments)) {
+		echo "=== Request query parameters ===\n";
+		var_dump($requestQueryParams);
+
+		echo "=== Route expected query parameters ===\n";
+		var_dump($routeQueryArguments);
 	}
 
-	if (!$requestUrlArguments) {
-		echo call_user_func([new $route->controller, $route->handler]);
+	if ($instance) {
+		/**
+		 * @var object $controller
+		 * @var string $handler
+		 * @var AbstractResponse $responseInstance
+		 */
+		$controller = new $instance[0];
+		$handler = $instance[1];
+		$responseInstance = $controller->handler();
+		$responseInstance->send();
+		break;
 	}
 }

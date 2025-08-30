@@ -8,7 +8,7 @@ use library\Enums\Methods;
 
 class Route extends AbstractRoute
 {
-	protected(set) string $name, $controller, $method, $url, $handler;
+//	protected(set) string $name, $controller, $method, $url, $handler;
 
 	protected function __construct(string $controller, $method, $handler, $url, $name)
 	{
